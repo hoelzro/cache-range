@@ -1,5 +1,7 @@
-Revision history for Cache-Range
+Revision history for {{ $dist->name }}
 
-0.01    January 14th, 2011
-        First release; provides basic functionality.
+{{$NEXT}}
+     - Convert to Dist::Zilla
 
+0.01 January 14th, 2011
+     First release; provides basic functionality.

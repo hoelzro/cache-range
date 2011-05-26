@@ -8,8 +8,6 @@ use Storable qw(freeze thaw);
 
 use namespace::clean;
 
-our $VERSION = '0.01';
-
 sub new {
     my ( $class, $cache ) = @_;
     
@@ -85,13 +83,7 @@ sub get {
 
 __END__
 
-=head1 NAME
-
-Cache::Range - Caches entries that are associated with an interval in a dataset
-
-=head1 VERSION
-
-0.01
+# ABSTRACT: Caches entries that are associated with an interval in a dataset
 
 =head1 SYNOPSIS
 
@@ -138,23 +130,6 @@ cache itself, I wouldn't recommend messing around with any cache entries prefixe
 Returns a list of pairs; each pair is a previously cached entry that overlaps
 the requested region.  The first member of the pair is the start of the
 interval, and the second is the data associated with that interval.
-
-=head1 AUTHOR
-
-Rob Hoelz, C<< rhoelz at inoc.com >>
-
-=head1 BUGS
-
-Please report any bugs or feature requests to C<bug-Cache-Range at rt.cpan.org>, or through
-the web interface at L<http://rt.cpan.org/NoAuth/ReportBug.html?Queue=Cache-Range>. I will
-be notified, and then you'll automatically be notified of progress on your bug as I make changes.
-
-=head1 COPYRIGHT & LICENSE
-
-Copyright 2011 Rob Hoelz.
-
-This module is free software; you can redistribute it and/or modify it under
-the same terms as Perl itself.
 
 =head1 SEE ALSO
 
