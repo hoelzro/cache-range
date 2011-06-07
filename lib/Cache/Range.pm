@@ -15,17 +15,18 @@ sub new {
 }
 
 sub set {
-    my $self  = shift;
-    my $key   = shift;
-    my $start = shift;
-    my $data  = shift;
-    my $cache = $$self;
-    my $end   = $start + $#$data;
+    my $self       = shift;
+    my $key        = shift;
+    my $data_start = shift;
+    my $data_end   = shift;
+    my $start      = shift;
+    my $data       = shift;
+    my $cache      = $$self;
 
-    $cache->set(join('_', $key, $start, $end), freeze($data), @_);
+    $cache->set(join('_', $key, $data_start, $data_end), freeze({ start_index => $start, data => $data}), @_);
     $data = {
-        end   => $end,
-        start => $start,
+        end   => $data_end,
+        start => $data_start,
     };
     my $rtree = $cache->get($key . '_rtree');
     if($rtree) {
@@ -33,7 +34,7 @@ sub set {
     } else {
         $rtree = Tree::R->new;
     }
-    $rtree->insert($data, $start, 0, $end, 0);
+    $rtree->insert($data, $data_start, 0, $data_end, 0);
     $cache->set($key . '_rtree', freeze($rtree), $Cache::EXPIRES_NEVER);
 }
 
@@ -61,7 +62,9 @@ sub get {
             $dirty = 1;
             next;
         }
-        $data = thaw($data);
+        $data           = thaw($data);
+        my $start_index = $data->{'start_index'};
+        $data           = $data->{'data'};
 
         if($s < $start) {
             splice @$data, 0, $start - $s;
@@ -69,9 +72,13 @@ sub get {
         }
         if($e > $end) {
             splice @$data, $end - $e;
+            $e = $end;
+        }
+        if($start_index < $s) {
+            $start_index = $s;
         }
 
-        push @retval, $s, $data;
+        push @retval, [ $s, $e, $start_index, $data ];
     }
     if($dirty) {
         $cache->set($key . '_rtree', freeze($rtree), $Cache::EXPIRES_NEVER);
