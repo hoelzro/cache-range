@@ -99,17 +99,16 @@ __END__
   my $cache  = Cache::Memory->new; # or any other Cache impl
   my $rcache = Cache::Range->new($cache);
   my $rows = [ 0..99 ];
-  $rcache->set($key, 0, $rows, '5 minutes'); # the end of the range is taken
-                                             # from the length of the value
-  $rcache->set($key, 110, $rows, '5 minutes');
+  $rcache->set($key, 0, 99, 0, $rows, '5 minutes'); # the end of the range is taken
+                                                    # from the length of the value
+  $rcache->set($key, 110, 209, 110, $rows, '5 minutes');
   my @entries = $rcache->get($key, 50, 90);
 
-  for(my $i = 0; $i < @entries; $i += 2) {
-    my ( $start, $data ) = @entries[$i, $i + 1];
-    # $start will be 50 here, and $data will contain
-    # rows 50-90
+  foreach my $entry (@entries) {
+    my ( $interval_start, $interval_end, $start_index, $data ) = @$entry;
+    # $interval_start should be 50, $interval_end should be 90,
+    # $start_index should be 50, and $data will contain rows 50-90
   }
-
 
 =head1 DESCRIPTION
 
@@ -126,17 +125,30 @@ interval you've already stored.
 
 Creates a new Cache::Range object, which stores its entries in C<$cache>.
 
-=head2 $rcache->set($key, $start, $value, $expiry)
+=head2 $rcache->set($key, $interval_start, $interval_end, $start_index, $value, $expiry)
 
-Stores entries under C<$key> which correspond to the interval C<$start> - C<scalar(@$value) - 1>,
-with an optional expiry time.  NOTE: Because this module stores some internal state in the
+Stores entries under C<$key> which correspond to the interval C<$interval_start> - C<$interval_end>,
+with an optional expiry time.  C<$start_index> is I<usually> the same as C<$interval_start>, which may
+seem redundant; C<$start_index> differs in cases where the cached data is a subrange of interval.  For
+example, let's say you have an application that inserts web server usage information into a database once an hour,
+starting at 8 AM and ending at 8 PM.  Now let's say a user asks a web frontend to the database for usage information
+from 6 AM to 10 PM.  Your SQL query will look something like this:
+
+  SELECT n_hits, hour FROM web_server_usage WHERE hour BETWEEN 6 AND 22
+
+You'll get all of the results from 8 AM to 8 PM, but you need to tell the cache that those are the results from
+6 AM to 10 PM.  So you call the C<set> method like this:
+
+  $rcache->set($key, 6, 22, 8, $data, '1 hour'); # you'd probably find the value of 8 by scanning the dataset
+
+NOTE: Because this module stores some internal state in the
 cache itself, I wouldn't recommend messing around with any cache entries prefixed by C<$key>.
 
 =head2 $rcache->get($key, $start, $end)
 
-Returns a list of pairs; each pair is a previously cached entry that overlaps
-the requested region.  The first member of the pair is the start of the
-interval, and the second is the data associated with that interval.
+Returns a list of array references, each representing a cached range that overlaps C<$start> - C<$end>.
+Each array reference contains the interval start, interval end, start index, and value associated with
+the cached range (ie. the four arguments after the key to L<""/set>.).
 
 =head1 SEE ALSO
 
