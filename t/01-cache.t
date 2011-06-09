@@ -5,7 +5,7 @@ use Cache::Memory;
 use Data::Dumper::Concise;
 use Test::More;
 
-plan tests => 19;
+plan tests => 23;
 use_ok 'Cache::Range';
 
 my @entries;
@@ -17,7 +17,6 @@ $rcache->set('foobar', 20, 29, 20, [ 20..29 ]);
 
 @entries = $rcache->get('foobar', 0, 9);
 is_deeply(\@entries, [ [ 0, 9, 0, [ 0..9 ] ] ]);
-
 
 @entries = $rcache->get('foobar', 0, 5);
 is_deeply(\@entries, [ [ 0, 5, 0, [ 0..5 ] ] ]);
@@ -75,3 +74,17 @@ sleep 5;
 
 @entries = $rcache->get('barfoo', 0, 9);
 is_deeply(\@entries, [ [ 5, 9, 5, [ 5..9 ] ] ]);
+
+$rcache = Cache::Range->new(Cache::Memory->new(default_expires => $Cache::EXPIRES_NEVER));
+$rcache->set('foo', 6, 10, 8, [ 13 ]);
+@entries = $rcache->get('foo', 6, 10);
+is_deeply(\@entries, [ [ 6, 10, 8, [13] ] ]);
+
+@entries = $rcache->get('foo', 7, 10);
+is_deeply(\@entries, [ [ 7, 10, 8, [13] ] ]);
+
+@entries = $rcache->get('foo', 8, 10);
+is_deeply(\@entries, [ [ 8, 10, 8, [13] ] ]);
+
+@entries = $rcache->get('foo', 6, 9);
+is_deeply(\@entries, [ [ 6, 9, 8, [13] ] ]);
