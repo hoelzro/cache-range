@@ -39,7 +39,7 @@ sub set {
 }
 
 sub get {
-    my ( $self, $key, $start, $end ) = @_;
+    my ( $self, $key, $req_start, $req_end ) = @_;
 
     my $cache = $$self;
     my $rtree = $cache->get($key . '_rtree');
@@ -50,35 +50,38 @@ sub get {
 
     my @results;
     my @retval;
-    $rtree->query_partly_within_rect($start, 0, $end, 0, \@results);
+    $rtree->query_partly_within_rect($req_start, 0, $req_end, 0, \@results);
     @results = sort { $a->{'start'} <=> $b->{'start'} } @results;
 
     foreach my $entry (@results) {
-        my ( $e, $s ) = @{$entry}{qw/end start/};
-        my $data = $cache->get(join('_', $key, $s, $e));
+        my ( $int_end, $int_start ) = @{$entry}{qw/end start/};
+        my $data = $cache->get(join('_', $key, $int_start, $int_end));
 
         unless($data) {
             $rtree->remove($entry);
             $dirty = 1;
             next;
         }
-        $data           = thaw($data);
-        my $start_index = $data->{'start_index'};
-        $data           = $data->{'data'};
+        $data     = thaw($data);
+        my $start = $data->{'start_index'};
+        $data     = $data->{'data'};
+        my $end   = $start + $#$data;
 
-        if($s < $start) {
-            splice @$data, 0, $start - $s;
-            $s = $start;
+        if($int_start < $req_start) {
+            $int_start = $req_start;
         }
-        if($e > $end) {
-            splice @$data, $end - $e;
-            $e = $end;
+        if($int_end > $req_end) {
+            $int_end = $req_end;
         }
-        if($start_index < $s) {
-            $start_index = $s;
+        if($start < $req_start) {
+            splice @$data, 0, $req_start - $start;
+            $start = $req_start;
+        }
+        if($end > $req_end) {
+            splice @$data, $req_end - $end;
         }
 
-        push @retval, [ $s, $e, $start_index, $data ];
+        push @retval, [ $int_start, $int_end, $start, $data ];
     }
     if($dirty) {
         $cache->set($key . '_rtree', freeze($rtree), $Cache::EXPIRES_NEVER);
